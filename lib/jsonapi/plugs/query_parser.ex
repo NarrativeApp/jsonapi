@@ -108,19 +108,10 @@ defmodule JSONAPI.QueryParser do
   @spec parse_filter(Config.t(), keyword()) :: Config.t()
   def parse_filter(config, map) when map_size(map) == 0, do: config
 
-  def parse_filter(%Config{opts: opts} = config, filter) do
-    opts_filter = Keyword.get(opts, :filter, [])
-
+  def parse_filter(%Config{opts: _opts} = config, filter) do
     Enum.reduce(filter, config, fn {key, val}, acc ->
-      check_filter_validity!(opts_filter, key, config)
       %{acc | filter: Keyword.put(acc.filter, String.to_atom(key), val)}
     end)
-  end
-
-  defp check_filter_validity!(filters, key, config) do
-    unless key in filters do
-      raise InvalidQuery, resource: config.view.type(), param: key, param_type: :filter
-    end
   end
 
   @spec parse_fields(Config.t(), map()) :: Config.t() | no_return()
