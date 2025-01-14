@@ -1,10 +1,12 @@
 defmodule JSONAPI.Mixfile do
   use Mix.Project
 
+  @version "1.3.1"
+
   def project do
     [
       app: :jsonapi,
-      version: "1.3.1",
+      version: @version,
       package: package(),
       compilers: compilers(Mix.env()),
       description: description(),
@@ -24,8 +26,6 @@ defmodule JSONAPI.Mixfile do
     ]
   end
 
-  # Use Phoenix compiler depending on environment.
-  defp compilers(:test), do: [:phoenix] ++ Mix.compilers()
   defp compilers(_), do: Mix.compilers()
 
   # Specifies which paths to compile per environment.
@@ -48,11 +48,12 @@ defmodule JSONAPI.Mixfile do
     [
       {:plug, "~> 1.10"},
       {:jason, "~> 1.0", optional: true},
-      {:ex_doc, "~> 0.20", only: :dev},
+      {:ex_doc, "~> 0.20", only: ~w[dev test]a},
       {:earmark, ">= 0.0.0", only: :dev},
       {:credo, "~> 1.4", only: [:dev, :test], runtime: false},
       {:phoenix, "~> 1.3", only: :test},
-      {:dialyxir, "~> 1.1.0", only: [:dev, :test], runtime: false}
+      {:dialyxir, "~> 1.1.0", only: [:dev, :test], runtime: false},
+      {:git_ops, "~> 2.2", only: ~w[dev test]a}
     ]
   end
 

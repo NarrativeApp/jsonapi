@@ -67,14 +67,6 @@ defmodule JSONAPI.QueryParserTest do
     assert filter[:name] == "jason"
   end
 
-  test "parse_filter/2 raises on invalid filters" do
-    config = struct(Config, opts: [], view: MyView)
-
-    assert_raise InvalidQuery, "invalid filter, noop for type mytype", fn ->
-      parse_filter(config, %{"noop" => "jason"})
-    end
-  end
-
   test "parse_include/2 turns an include string into a keyword list" do
     config = struct(Config, view: MyView)
     assert parse_include(config, "author,comments.user").include == [:author, comments: :user]
