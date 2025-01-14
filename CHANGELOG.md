@@ -200,3 +200,28 @@ you have any trouble with these deprecations please file an issue.
 ## v0.0.1 (2015-06-21)
 
 - Support for basic JSONAPI Docs. Links support still missing
+
+<!-- changelog -->
+
+## [v1.4.0](https://github.com/NarrativeApp/jsonapi/compare/v1.3.1...v1.4.0) (2025-01-14)
+
+
+
+
+### Features:
+
+* config: add initial configuration for git_ops
+
+* ci: add GitHub Actions workflow for Elixir library with git ops
+
+### Bug Fixes:
+
+* mix: update ex_doc dependency to include test environment
+
+* config: update mix_project to JSONAPI.Mixfile in config.exs
+
+* Expand fields for lists
+
+### Improvements:
+
+* Remove raising error in query plug when query filter keys don't exist in view file. This will enable us to query with
