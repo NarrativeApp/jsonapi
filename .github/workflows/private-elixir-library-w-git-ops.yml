@@ -33,6 +33,7 @@ jobs:
         with:
           name: deps
           path: deps/
+          include-hidden-files: true
 
   build:
     runs-on: ubuntu-22.04
