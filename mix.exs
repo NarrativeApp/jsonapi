@@ -49,7 +49,6 @@ defmodule JSONAPI.Mixfile do
       {:plug, "~> 1.10"},
       {:jason, "~> 1.0", optional: true},
       {:ex_doc, "~> 0.20", only: ~w[dev test]a},
-      {:earmark, ">= 0.0.0", only: :dev},
       {:credo, "~> 1.4", only: [:dev, :test], runtime: false},
       {:phoenix, "~> 1.3", only: :test},
       {:dialyxir, "~> 1.1.0", only: [:dev, :test], runtime: false},
