@@ -50,10 +50,9 @@ defmodule JSONAPI.Serializer do
   def encode_data(_view, nil, _conn, _query_includes, _options), do: {[], nil}
 
   def encode_data(view, data, conn, query_includes, options) when is_list(data) do
-    Enum.map_reduce(data, [], fn d, acc ->
-      {to_include, encoded_data} = encode_data(view, d, conn, query_includes, options)
-      {to_include, acc ++ [encoded_data]}
-    end)
+    data
+    |> Enum.map(&encode_data(view, &1, conn, query_includes, options))
+    |> Enum.unzip()
   end
 
   def encode_data(view, data, conn, query_includes, options) do

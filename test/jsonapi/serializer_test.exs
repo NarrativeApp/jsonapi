@@ -216,39 +216,45 @@ defmodule JSONAPI.SerializerTest do
     assert Enum.count(encoded[:included]) == 4
   end
 
-  test "serialize handles a list" do
-    data = %{
-      id: 1,
-      text: "Hello",
-      body: "Hello world",
-      author: %{id: 2, username: "jason"},
-      best_comments: [
-        %{id: 5, text: "greatest comment ever", user: %{id: 4, username: "jack"}},
-        %{id: 6, text: "not so great", user: %{id: 2, username: "jason"}}
-      ]
-    }
-
-    data_list = [data, data, data]
+  test "serialize handles a list, preserving order and deduplicating includes" do
+    data_list =
+      Enum.map(1..50, fn i ->
+        %{
+          id: i,
+          text: "post #{i}",
+          body: "body #{i}",
+          author: %{id: 100 + i, username: "u#{i}"},
+          best_comments: [
+            %{id: 200 + i, text: "comment #{i}", user: %{id: 4, username: "jack"}}
+          ]
+        }
+      end)
 
     conn = Plug.Conn.fetch_query_params(%Plug.Conn{})
 
     encoded = Serializer.serialize(PostView, data_list, conn)
 
-    assert Enum.count(encoded[:data]) == 3
+    assert Enum.count(encoded[:data]) == 50
 
-    Enum.each(encoded[:data], fn enc ->
+    Enum.zip(encoded[:data], data_list)
+    |> Enum.each(fn {enc, data} ->
       assert enc[:id] == PostView.id(data)
       assert enc[:type] == PostView.type()
-
-      attributes = enc[:attributes]
-      assert attributes[:text] == data[:text]
-      assert attributes[:body] == data[:body]
-
+      assert enc[:attributes][:text] == data[:text]
+      assert enc[:attributes][:body] == data[:body]
       assert enc[:links][:self] == PostView.url_for(data, conn)
       assert map_size(enc[:relationships]) == 2
     end)
 
-    assert Enum.count(encoded[:included]) == 4
+    # 50 authors + 50 comments + the one shared comment author (included once).
+    assert Enum.count(encoded[:included]) == 101
+
+    included_ids = fn type ->
+      encoded[:included] |> Enum.filter(&(&1[:type] == type)) |> Enum.map(& &1[:id])
+    end
+
+    assert included_ids.("comment") == Enum.map(1..50, &"#{200 + &1}")
+    assert included_ids.("user") == ["101", "4" | Enum.map(2..50, &"#{100 + &1}")]
   end
 
   test "serialize handles an empty relationship" do
