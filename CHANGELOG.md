@@ -203,6 +203,15 @@ you have any trouble with these deprecations please file an issue.
 
 <!-- changelog -->
 
+## [v1.4.1](https://github.com/NarrativeApp/jsonapi/compare/v1.4.0...v1.4.1) (2026-09-18)
+
+
+
+
+### Bug Fixes:
+
+* serializer: release the linear list encoding fix
+
 ## [v1.4.0](https://github.com/NarrativeApp/jsonapi/compare/v1.3.1...v1.4.0) (2025-01-14)
 
 
