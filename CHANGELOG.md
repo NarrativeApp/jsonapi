@@ -203,6 +203,15 @@ you have any trouble with these deprecations please file an issue.
 
 <!-- changelog -->
 
+## [v1.4.2](https://github.com/NarrativeApp/jsonapi/compare/v1.4.1...v1.4.2) (2026-09-19)
+
+
+
+
+### Bug Fixes:
+
+* utils: dasherize and underscore without regex
+
 ## [v1.4.1](https://github.com/NarrativeApp/jsonapi/compare/v1.4.0...v1.4.1) (2026-09-18)
 
 
