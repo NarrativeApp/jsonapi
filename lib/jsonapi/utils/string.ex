@@ -5,6 +5,8 @@ defmodule JSONAPI.Utils.String do
 
   @allowed_transformations [:camelize, :dasherize, :underscore]
 
+  defguardp is_alnum(c) when c in ?a..?z or c in ?A..?Z or c in ?0..?9
+
   @doc """
   Replace dashes between words in `value` with underscores
 
@@ -28,20 +30,68 @@ defmodule JSONAPI.Utils.String do
       "corgi_age"
 
   """
-  @spec underscore(String.t()) :: String.t()
-  def underscore(value) when is_binary(value) do
-    value
-    |> String.replace(~r/([a-zA-Z\d])-([a-zA-Z\d])/, "\\1_\\2")
-    |> String.replace(~r/([a-z\d])([A-Z])/, "\\1_\\2")
-    |> String.downcase()
-  end
-
   @spec underscore(atom) :: String.t()
   def underscore(value) when is_atom(value) do
     value
     |> to_string()
     |> underscore()
   end
+
+  @spec underscore(String.t()) :: String.t()
+  def underscore(<<>>), do: <<>>
+  def underscore(value) when is_binary(value), do: underscore_scan(value, value, 0, nil)
+
+  # Both transformations below are byte walks rather than the regexes they
+  # replace, because Regex.replace/3 re-checks the PCRE version and
+  # re-parses its replacement string on every call, which dominated the
+  # cost of serialising large collections. Each reproduces its regexes
+  # exactly, including that a regex consumes the byte after a match, so
+  # that byte can never start another match.
+  #
+  # The walk first scans for the first byte that would change; if there is
+  # none the input is returned as-is, with no allocation. Otherwise the
+  # untouched prefix is kept as a sub-binary and only the rest is rebuilt.
+  #
+  # For underscore/1 the two regexes ran as separate passes, so two
+  # "previous byte" values are carried: `dash` is what the dash pass last
+  # saw and `camel` what the camel-case pass last saw. Lower-casing is done
+  # inline for ASCII; String.downcase/1 runs at the end only if a non-ASCII
+  # byte was seen, since only then can it differ.
+  defp underscore_scan(value, <<>>, _i, _prev), do: value
+
+  defp underscore_scan(value, <<c, _::binary>>, i, prev)
+       when c in ?A..?Z or c > 127 or (c == ?- and is_alnum(prev)) do
+    rest = binary_part(value, i, byte_size(value) - i)
+    underscore_walk(rest, prev, prev, [binary_part(value, 0, i)], true)
+  end
+
+  defp underscore_scan(value, <<c, rest::binary>>, i, _prev),
+    do: underscore_scan(value, rest, i + 1, c)
+
+  defp underscore_walk(<<>>, _dash, _camel, acc, true),
+    do: acc |> Enum.reverse() |> IO.iodata_to_binary()
+
+  defp underscore_walk(<<>>, _dash, _camel, acc, false),
+    do: acc |> Enum.reverse() |> IO.iodata_to_binary() |> String.downcase()
+
+  defp underscore_walk(<<?-, next, rest::binary>>, dash, _camel, acc, ascii?)
+       when is_alnum(dash) and is_alnum(next) do
+    underscore_walk(rest, nil, next, [lower(next), ?_ | acc], ascii?)
+  end
+
+  defp underscore_walk(<<c, rest::binary>>, _dash, camel, acc, ascii?)
+       when c in ?A..?Z and (camel in ?a..?z or camel in ?0..?9) do
+    underscore_walk(rest, c, nil, [c + 32, ?_ | acc], ascii?)
+  end
+
+  defp underscore_walk(<<c, rest::binary>>, _dash, _camel, acc, ascii?) when c < 128,
+    do: underscore_walk(rest, c, c, [lower(c) | acc], ascii?)
+
+  defp underscore_walk(<<c, rest::binary>>, _dash, _camel, acc, _ascii?),
+    do: underscore_walk(rest, c, c, [c | acc], false)
+
+  defp lower(c) when c in ?A..?Z, do: c + 32
+  defp lower(c), do: c
 
   @doc """
   Replace underscores between words in `value` with dashes
@@ -68,9 +118,29 @@ defmodule JSONAPI.Utils.String do
   end
 
   @spec dasherize(String.t()) :: String.t()
-  def dasherize(value) when is_binary(value) do
-    String.replace(value, ~r/([a-zA-Z0-9])_([a-zA-Z0-9])/, "\\1-\\2")
+  def dasherize(<<>>), do: <<>>
+  def dasherize(value) when is_binary(value), do: dasherize_scan(value, value, 0, nil)
+
+  # An underscore between two alphanumerics becomes a dash. See
+  # underscore_scan/4 for the scan-then-walk shape.
+  defp dasherize_scan(value, <<>>, _i, _prev), do: value
+
+  defp dasherize_scan(value, <<?_, next, rest::binary>>, i, prev)
+       when is_alnum(prev) and is_alnum(next) do
+    dasherize_walk(rest, nil, [next, ?-, binary_part(value, 0, i)])
   end
+
+  defp dasherize_scan(value, <<c, rest::binary>>, i, _prev),
+    do: dasherize_scan(value, rest, i + 1, c)
+
+  defp dasherize_walk(<<>>, _prev, acc), do: acc |> Enum.reverse() |> IO.iodata_to_binary()
+
+  defp dasherize_walk(<<?_, next, rest::binary>>, prev, acc)
+       when is_alnum(prev) and is_alnum(next) do
+    dasherize_walk(rest, nil, [next, ?- | acc])
+  end
+
+  defp dasherize_walk(<<c, rest::binary>>, _prev, acc), do: dasherize_walk(rest, c, [c | acc])
 
   @doc """
   Replace underscores or dashes between words in `value` with camelCasing
